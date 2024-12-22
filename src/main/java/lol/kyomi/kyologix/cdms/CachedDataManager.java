@@ -210,7 +210,6 @@ public abstract class CachedDataManager<K, V> {
 	 * This operation is useful for persisting specific cached entries and then freeing memory by clearing the entry.
 	 *
 	 * @param key The key identifying the data to settle.
-	 * @return {@code true} if the entry was in the cache and saved; {@code false} if no such entry exists.
 	 * @deprecated This method is deprecated and will be removed in a future version. Use {@link #settleEntry(K)} instead.
 	 */
 	@Deprecated
@@ -431,8 +430,9 @@ public abstract class CachedDataManager<K, V> {
 	 * </p>
 	 *
 	 * <p><b>Note:</b> This method must be called by the subclass constructor to ensure proper initialization.</p>
+	 * @throws CDMException If an error occurs during initialization, such as a database connection failure or query error.
 	 */
-	protected void initialize() { }
+	protected void initialize() throws CDMException { }
 
 	/**
 	 * Abstract method to create a new entry into an external source, such as a file or database, associated with the specified key and value.

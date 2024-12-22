@@ -6,6 +6,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 
+/**
+ * Some file utilities to read and write files. Cause why not lol
+ * @author Kyomi
+ */
 public class FileUtilities {
 
 	/**
