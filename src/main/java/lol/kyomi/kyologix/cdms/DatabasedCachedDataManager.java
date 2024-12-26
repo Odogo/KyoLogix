@@ -1,6 +1,6 @@
 package lol.kyomi.kyologix.cdms;
 
-import lol.kyomi.kyologix.DatabaseManager;
+import lol.kyomi.kyologix.database.DatabaseManager;
 import lol.kyomi.kyologix.exceptions.CDMException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +31,9 @@ import java.util.concurrent.TimeUnit;
  * @param <V> The type of the value stored in the cache
  *
  * @author Kyomi
+ * @deprecated This class will be overhauled in a future release. See {@link CachedDataManager} for more information.
  */
+@Deprecated
 public abstract class DatabasedCachedDataManager<K, V> extends CachedDataManager<K, V> {
 
 	protected final DatabaseManager databaseManager;

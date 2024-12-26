@@ -1,4 +1,4 @@
-package lol.kyomi.kyologix;
+package lol.kyomi.kyologix.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -7,6 +7,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -25,6 +29,8 @@ public class DatabaseManager {
 
 	private @Nullable HikariConfig config;
 	private @Nullable HikariDataSource dataSource;
+
+	private final Set<Table> tables;
 
 	/**
 	 * Creates a new {@link DatabaseManager} instance with the specified JDBC URI, username, password, and maximum pool size.
@@ -53,6 +59,8 @@ public class DatabaseManager {
 		config.setConnectionTimeout(30000);
 
 		this.config = config;
+
+		this.tables = new HashSet<>();
 	}
 
 	/**
@@ -91,16 +99,40 @@ public class DatabaseManager {
 	public void setConfig(@Nullable HikariConfig config) { this.config = config; }
 
 	/**
+	 * Adds a table into the DatabaseManager and will be registered upon added, or if the database isn't
+	 * connected, upon connection.
+	 * @param table The table to add into the registry.
+	 */
+	public void addTable(@NotNull Table table) throws SQLException {
+		this.tables.add(table);
+
+		if(dataSource != null) {
+			table.createTableIfNotExists();
+		}
+	}
+
+	/**
+	 * Removes a table from the DatabaseManager. This does nothing in terms of the database, however the
+	 * Table will not be accessible.
+	 * @param table The table to remove from the registry.
+	 */
+	public void removeTable(@NotNull Table table) { this.tables.remove(table); }
+
+	/**
 	 * Connects to the database using the specified configuration. The connection pool is created using the configuration specified in the constructor.
 	 * This method cannot be called when the {@link DatabaseManager} has already been connected, i.e., when the {@link DatabaseManager#connect()} method has already been called.
 	 */
-	public void connect() {
+	public void connect() throws SQLException {
 		if (config == null) {
 			throw new IllegalStateException("DatabaseManager has already been connected.");
 		}
 
 		dataSource = new HikariDataSource(config);
 		config = null;
+
+		for(Table table : tables) {
+			table.createTableIfNotExists();
+		}
 	}
 
 	/**

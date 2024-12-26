@@ -38,7 +38,11 @@ import java.util.logging.Logger;
  *
  * @author <p>Kyomi - Core writer and initial documentation</p>
  *         <p>ChatGPT (4o) - Adjusted for better and detailed documentation</p>
+ * @deprecated This class will be overhauled in a future version to provide a more streamlined and efficient caching system.
+ * 		   While the current implementation is functional, it has a lot of room for improvement and optimization.
+ * 		   The new version will be more flexible, efficient, and easier to use, with better support for various data sources.
  */
+@Deprecated
 public abstract class CachedDataManager<K, V> {
 
 	// --- Static --- \\
