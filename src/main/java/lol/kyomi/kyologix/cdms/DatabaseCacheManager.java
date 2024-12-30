@@ -38,6 +38,18 @@ public abstract class DatabaseCacheManager<K, V extends PrimaryKeyed<K>> extends
 	protected final long expirationTime;
 	protected final ScheduledExecutorService executorService;
 
+	/**
+	 * Creates a new {@link DatabaseCacheManager} instance with the {@link DatabaseManager},
+	 * the registering class of the cache manager, the expiration unit, and the time unit describing
+	 * how long the expiration unit is.
+	 * @param databaseManager The DatabaseManager instance created on startup.
+	 *                        <b>Note:</b> You should only have one instance of this class within your application.
+	 * @param registeringClass The registering class of the manager, typically a manager of the value type.
+	 *                        (i.e. KingdomManager for Kingdoms)
+	 * @param expiration The expiration unit, describing the literal length of when data should get settled.
+	 * @param timeUnit The expiration time unit, describing the actual scaling of the expiration unit.
+	 * @throws SQLException If an SQL error occurs during creating the table, see {@link Table#Table(DatabaseManager)} for more.
+	 */
 	public DatabaseCacheManager(
 			@NotNull DatabaseManager databaseManager, // the DatabaseManager instance
 			Class<?> registeringClass, // the class registering this CacheDataManager
@@ -53,9 +65,13 @@ public abstract class DatabaseCacheManager<K, V extends PrimaryKeyed<K>> extends
 
 		this.expirationTime = timeUnit.toMillis(expiration);
 		this.executorService = Executors.newSingleThreadScheduledExecutor();
+
+		startCacheExpiry();
 	}
 
-	@Override public Optional<V> fetchByPK(K primaryKey) throws SQLException {
+	// -- Cache Manager Methods -- \\
+
+	@Override public @NotNull Optional<V> fetchByPK(@NotNull K primaryKey) throws SQLException {
 		Optional<V> value = Optional.ofNullable(cache.get(primaryKey));
 
 		if(value.isPresent()) {
@@ -70,23 +86,23 @@ public abstract class DatabaseCacheManager<K, V extends PrimaryKeyed<K>> extends
 		return value;
 	}
 
-	@Override public Set<V> fetchAll() throws SQLException {
-		return db_fetchAll();
+	@Override public @NotNull Set<V> fetchAll() throws SQLException {
+
 	}
 
-	@Override public void insertEntry(V object) throws SQLException {
+	@Override public void insertEntry(@NotNull V object) throws SQLException {
 		cache.put(object.getPrimaryKey(), object);
 		accessTime.put(object.getPrimaryKey(), System.currentTimeMillis());
 		db_insertEntry(object);
 	}
 
-	@Override public void updateEntry(V object) throws SQLException {
+	@Override public void updateEntry(@NotNull V object) throws SQLException {
 		cache.put(object.getPrimaryKey(), object);
 		accessTime.put(object.getPrimaryKey(), System.currentTimeMillis());
 		db_updateEntry(object);
 	}
 
-	@Override public void destroyEntry(K primaryKey) throws SQLException {
+	@Override public void destroyEntry(@NotNull K primaryKey) throws SQLException {
 		cache.remove(primaryKey);
 		accessTime.remove(primaryKey);
 		db_destroyEntry(primaryKey);
@@ -101,17 +117,48 @@ public abstract class DatabaseCacheManager<K, V extends PrimaryKeyed<K>> extends
 		return true;
 	}
 
-	protected abstract Optional<V> db_fetchByPK(K primaryKey) throws SQLException;
+	// -- Abstract Methods -- \\
 
-	protected abstract Set<V> db_fetchAll() throws SQLException;
+	/**
+	 * A database operation to fetch an entry by a primary key. This method should only be the statement executing
+	 * the operation, as another method will run {@link PreparedStatement#executeQuery()} for you.
+	 * @param connection A connection to the database, fetched from the {@link DatabaseManager}
+	 * @param primaryKey The primary key to fetch an entry from
+	 * @return The completed {@link PreparedStatement} object, ready for execution.
+	 * @throws SQLException if an SQL error occurred, see {@link Connection#prepareStatement(String)} for more
+	 */
+	protected abstract @NotNull PreparedStatement db_fetchByPK(
+			@NotNull Connection connection,
+			@NotNull K primaryKey
+	) throws SQLException;
 
-	protected abstract void db_insertEntry(V object) throws SQLException;
+	/**
+	 * A database operation to fetch all entries within the table
+	 * @param connection
+	 * @return
+	 * @throws SQLException
+	 */
+	protected abstract @NotNull PreparedStatement db_fetchAll(
+			@NotNull Connection connection
+	) throws SQLException;
 
-	protected abstract void db_updateEntry(V object) throws SQLException;
+	protected abstract @NotNull PreparedStatement db_insertEntry(
+			@NotNull Connection connection,
+			@NotNull V object
+	) throws SQLException;
 
-	protected abstract void db_destroyEntry(K primaryKey) throws SQLException;
+	protected abstract @NotNull PreparedStatement db_updateEntry(
+			@NotNull Connection connection,
+			@NotNull V object
+	) throws SQLException;
+
+	protected abstract @NotNull PreparedStatement db_destroyEntry(
+			@NotNull Connection connection,
+			@NotNull K primaryKey
+	) throws SQLException;
 
 	// -- Expiry System -- \\
+
 	protected boolean shouldDataExpire(@NotNull K key) {
 		return System.currentTimeMillis() - accessTime.get(key) > expirationTime;
 	}
