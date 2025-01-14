@@ -1,6 +1,5 @@
 package lol.kyomi.kyologix;
 
-import lol.kyomi.kyologix.cdms.CachedDataManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,8 +40,7 @@ public class FileUtilities {
 
 	/**
 	 * Writes a string to the specified file, creating the file and necessary directories if they do not exist.
-	 * This method provides a straightforward way to save data in text format to the filesystem and handle necessary
-	 * I/O operations within {@link CachedDataManager}.
+	 * This method provides a straightforward way to save data in text format to the filesystem.
 	 *
 	 * @param file the target file to write to; if it does not exist, it will be created along with any required directories.
 	 * @param contents The content to write to the file as a string.

@@ -6,21 +6,24 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
 /**
  * An abstract class to be the middle-man between the application and the database. The class handles mapping and statements for all CRUD related actions.
+ * <p>
+ *     This class handles insert operations with use of partials. See {@link Table} for non-partial tables.
+ * </p>
  *
  * @param <K> the primary key type for this table
  * @param <V> the value type (which should implement the {@link PrimaryKeyed} interface)
+ * @param <PartialV> the partial data type to use. {@link V} should extend {@link PartialV}
  *
  * @since 1.0
  * @version 2.0
  */
-public abstract class Table<K, V extends PrimaryKeyed<K>> {
+public abstract class TablePartials<K, V extends PrimaryKeyed<K>, PartialV> {
 
 	private final @NotNull DatabaseManager databaseManager;
 
@@ -34,7 +37,7 @@ public abstract class Table<K, V extends PrimaryKeyed<K>> {
 	 * @param primaryKeyName the table's primary key field, should be accurate
 	 * @throws SQLException if getting the connection, preparing the statement, or executing the statement for the table creation within the database failed
 	 */
-	public Table(@NotNull DatabaseManager databaseManager, @NotNull String tableName, @NotNull String primaryKeyName) throws SQLException {
+	public TablePartials(@NotNull DatabaseManager databaseManager, @NotNull String tableName, @NotNull String primaryKeyName) throws SQLException {
 		this.databaseManager = databaseManager;
 		this.tableName = tableName;
 		this.pkColumn = primaryKeyName;
@@ -73,7 +76,7 @@ public abstract class Table<K, V extends PrimaryKeyed<K>> {
 	 * @return a completed {@link PreparedStatement} which will run {@link PreparedStatement#executeUpdate()} with
 	 * @throws SQLException if creating the statement failed (handled externally)
 	 */
-	protected abstract @NotNull PreparedStatement insertEntryStatement(@NotNull Connection connection, @NotNull V value) throws SQLException;
+	protected abstract @NotNull PreparedStatement insertEntryStatement(@NotNull Connection connection, @NotNull PartialV value) throws SQLException;
 
 	/**
 	 * An abstract method for updating an entry within the database
@@ -156,7 +159,7 @@ public abstract class Table<K, V extends PrimaryKeyed<K>> {
 	 *     <li>If no ID was obtained for the given object</li>
 	 * </ul>
 	 */
-	public @NotNull V insert(@NotNull V value) throws SQLException {
+	public @NotNull V insert(@NotNull PartialV value) throws SQLException {
 		try(Connection connection = databaseManager.getConnection()) {
 			try(PreparedStatement statement = insertEntryStatement(connection, value)) {
 				int affected = statement.executeUpdate();
@@ -164,7 +167,7 @@ public abstract class Table<K, V extends PrimaryKeyed<K>> {
 
 				try(ResultSet generatedKeys = statement.getGeneratedKeys()) {
 					if(generatedKeys.next()) {
-						return mapResultSet(generatedKeys);
+						return fetchByPK((K) generatedKeys.getObject(1)).get();
 					} else throw new SQLException("Creating value failed, no ID obtained.");
 				}
 			}
